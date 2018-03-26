@@ -1,0 +1,93 @@
+---
+title: "World Happiness Report"
+author: "Koki Ando"
+date: "3/26/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Preparation
+
+## Packages
+```{r}
+library(data.table)
+library(tidyverse)
+library(corrplot)
+library(plotly)
+```
+
+
+```{r}
+setwd("/Users/KokiAndo/Desktop/R/R report/World Happiness")
+#(https://www.kaggle.com/unsdsn/world-happiness)
+wh15 <- fread("2015.csv", data.table = FALSE)
+wh16 <- fread("2016.csv", data.table = FALSE)
+wh17 <- fread("2017.csv", data.table = FALSE)
+wh15$year <- 2015
+wh16$year <- 2016
+wh17$year <- 2017
+
+names(wh17)[2] <- "Happiness Rank"
+names(wh17)[3] <- "Happiness Score"
+names(wh17)[6] <- "Economy (GDP per Capita)"
+names(wh17)[8] <- "Health (Life Expectancy)"
+names(wh17)[11] <- "Trust (Government Corruption)"
+names(wh17)[12] <- "Dystopia Residual"
+
+wh15_17 <- bind_rows(wh15,wh16,wh17)
+names(wh15_17)[5] <- "SD_error"
+wh15_17 <- wh15_17 %>% select(Country:year,-Region, -SD_error)
+```
+
+```{r}
+names(wh15_17) <- c("Country","Happiness_Rank","Happiness_Score","Economy_GDP",
+                 "Family","Health","Freedom","Trust",
+                 "Generosity","Dystopia_Residual","year")
+```
+
+
+```{r}
+str(wh15_17)
+```
+
+
+
+# Correlation
+```{r}
+corrplot(cor(wh15_17 %>% select(Happiness_Score:Dystopia_Residual)), method = "circle",type = "upper")
+```
+
+# Ranking Transition (coloured by year)
+```{r}
+wh15_17$Country <- as.factor(wh15_17$Country)
+wh15_17$year <- as.factor(wh15_17$year)
+ggplot(wh15_17, aes(x=Happiness_Rank, y = Country, colour = year)) + geom_point()
+```
+
+```{r}
+ggplot(wh15_17 %>% filter(year==2017), aes(x= Happiness_Score,y= 
+                                             reorder(Country,Happiness_Score))) + 
+  geom_point(colour = "red", alpha = .5) + 
+  geom_segment(aes(yend=reorder(Country, Happiness_Score)), xend = 0, colour="pink", alpha = .5) 
+```
+
+# Scatter Plot
+```{r}
+ggplot(wh15_17 %>% filter(year == 2017), aes(x=Health, y=Happiness_Score, colour=Economy_GDP)) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+```{r}
+plot_ly(data = wh15_17, 
+        x=~Health, y=~Happiness_Score, color=~Economy_GDP, type = "scatter",
+        text = ~paste("Country:", Country))
+```
+
+# World map Animation by year
+
+
+
