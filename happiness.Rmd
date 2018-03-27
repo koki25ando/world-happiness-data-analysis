@@ -49,10 +49,6 @@ names(wh15_17) <- c("Country","Happiness_Rank","Happiness_Score","Economy_GDP",
 ```
 
 
-```{r}
-str(wh15_17)
-```
-
 
 
 # Correlation
@@ -87,7 +83,51 @@ plot_ly(data = wh15_17,
         text = ~paste("Country:", Country))
 ```
 
-# World map Animation by year
+
+```{r}
+world <- map_data('world')
+ggplot() + geom_polygon(data = world, 
+                             aes(x = long, y=lat, group = group),
+                             colour = "black",
+                             fill ="orange")
+```
+
+[Reference](https://stackoverflow.com/questions/30706124/ploting-the-world-map-in-r)
+```{r}
+world <- map_data('world')
+world <- world %>% filter(region != "Antarctica")
+world <- fortify(world)
+happiness.score17 <- wh15_17 %>% select(Country, Happiness_Score, year) %>% filter(year == 2017)
+head(happiness.score17)
+ggplot() + 
+  geom_map(data=world, map=world,
+                  aes(x=long, y=lat, group=group, map_id=region),
+                  fill="white", colour="black") + 
+  geom_map(data=happiness.score17, map=world,
+                  aes(fill=Happiness_Score, map_id=Country),
+                  colour="black") + 
+  scale_fill_continuous(low="red", high="yellow", 
+                               guide="colorbar")
+```
+
+[参考](http://gg-hogehoge.hatenablog.com/entry/2013/09/23/212746)
+[参考2](http://www.statsoft.org/wp-content/uploads/2016/09/Lecture6_HKMapVis.html)
+[参考3](https://www.kaggle.com/swl554/visualizing-happiness-around-the-globe)
+
+
+#Economy vs Happiness scatter plot
+
+```{r}
+plot_ly(data = wh15_17 %>% filter(year == 2017), 
+        x=~Economy_GDP, y=~Happiness_Score, type = "scatter",
+        text = ~paste("Country:", Country))
+```
+
+# Happiness score by region(boxplot)
+```{r}
+names(wh16)[4] <- "Happiness_Score"
+ggplot(wh16, aes(x=Region, y= Happiness_Score, colour = Region)) + geom_boxplot() + geom_point()
+```
 
 
 
