@@ -2,14 +2,21 @@
 title: "World Happiness Report"
 author: "Koki Ando"
 date: "3/26/2018"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
+    highlight: tango
+    theme: cosmo
+    toc: yes
+    toc_depth: 3
+    number_section: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Data Preparation
+# Preparation
 
 ## Packages
 ```{r}
@@ -17,9 +24,10 @@ library(data.table)
 library(tidyverse)
 library(corrplot)
 library(plotly)
+library(wildcard)
 ```
 
-
+## Data Importing & Cleaning
 ```{r}
 setwd("/Users/KokiAndo/Desktop/R/R report/World Happiness")
 #(https://www.kaggle.com/unsdsn/world-happiness)
@@ -48,57 +56,48 @@ names(wh15_17) <- c("Country","Happiness_Rank","Happiness_Score","Economy_GDP",
                  "Generosity","Dystopia_Residual","year")
 ```
 
+## Data Components
+```{r}
+head(wh15_17)
+str(wh15_17)
+```
 
 
-
-# Correlation
+# Analysis
+## Correlation
 ```{r}
 corrplot(cor(wh15_17 %>% select(Happiness_Score:Dystopia_Residual)), method = "circle",type = "upper")
 ```
 
-# Ranking Transition (coloured by year)
+## Histogram
 ```{r}
-wh15_17$Country <- as.factor(wh15_17$Country)
-wh15_17$year <- as.factor(wh15_17$year)
-ggplot(wh15_17, aes(x=Happiness_Rank, y = Country, colour = year)) + geom_point()
+happiness17 <- subset(wh15_17, year == 2017)
+hist(wh15_17$Happiness_Score)
 ```
 
+## Ranking
 ```{r}
-ggplot(wh15_17 %>% filter(year==2017), aes(x= Happiness_Score,y= 
+p <- ggplot(wh15_17 %>% filter(year==2017), aes(x= Happiness_Score,y= 
                                              reorder(Country,Happiness_Score))) + 
   geom_point(colour = "red", alpha = .5) + 
-  geom_segment(aes(yend=reorder(Country, Happiness_Score)), xend = 0, colour="pink", alpha = .5) 
+  geom_segment(aes(yend=reorder(Country, Happiness_Score)), xend = 0, colour="pink", alpha = .5) + 
+  theme(axis.text.y = element_text(angle = 45, hjust = 1))
+ggplotly(p)
 ```
 
-# Scatter Plot
-```{r}
-ggplot(wh15_17 %>% filter(year == 2017), aes(x=Health, y=Happiness_Score, colour=Economy_GDP)) + 
-  geom_point() + 
-  geom_smooth()
-```
-
-```{r}
-plot_ly(data = wh15_17, 
-        x=~Health, y=~Happiness_Score, color=~Economy_GDP, type = "scatter",
-        text = ~paste("Country:", Country))
-```
-
-
-```{r}
-world <- map_data('world')
-ggplot() + geom_polygon(data = world, 
-                             aes(x = long, y=lat, group = group),
-                             colour = "black",
-                             fill ="orange")
-```
-
-[Reference](https://stackoverflow.com/questions/30706124/ploting-the-world-map-in-r)
+### 2017 Hapiness Score World Map
 ```{r}
 world <- map_data('world')
 world <- world %>% filter(region != "Antarctica")
 world <- fortify(world)
 happiness.score17 <- wh15_17 %>% select(Country, Happiness_Score, year) %>% filter(year == 2017)
-head(happiness.score17)
+happiness.score17 <- wildcard(df = happiness.score17, wildcard = "United States", values = "USA",
+         expand = TRUE, rules = NULL)
+happiness.score17 <- wildcard(df = happiness.score17, wildcard = "United Kingdom", values = "UK",
+         expand = TRUE, rules = NULL)
+
+happiness.score17 <- wildcard(df = happiness.score17, wildcard = "Democratic Republic of the Congo", values = "Congo (Kinshasa)",
+         expand = TRUE, rules = NULL)
 ggplot() + 
   geom_map(data=world, map=world,
                   aes(x=long, y=lat, group=group, map_id=region),
@@ -106,27 +105,54 @@ ggplot() +
   geom_map(data=happiness.score17, map=world,
                   aes(fill=Happiness_Score, map_id=Country),
                   colour="black") + 
-  scale_fill_continuous(low="red", high="yellow", 
+  scale_fill_continuous(low="red", high="yellow",
                                guide="colorbar")
 ```
 
-[参考](http://gg-hogehoge.hatenablog.com/entry/2013/09/23/212746)
-[参考2](http://www.statsoft.org/wp-content/uploads/2016/09/Lecture6_HKMapVis.html)
-[参考3](https://www.kaggle.com/swl554/visualizing-happiness-around-the-globe)
+
+## Scatter Plot
+### Scatter Plot No.1
+```{r}
+plot(Happiness_Score ~ Economy_GDP, data = wh15_17)
+```
 
 
-#Economy vs Happiness scatter plot
-
+### Scatter Plot No.2
 ```{r}
 plot_ly(data = wh15_17 %>% filter(year == 2017), 
         x=~Economy_GDP, y=~Happiness_Score, type = "scatter",
         text = ~paste("Country:", Country))
 ```
+### Scatter Plot No.3
+```{r}
+ggplot(wh15_17 %>% filter(year == 2017), aes(x=Economy_GDP, y=Happiness_Score, colour=Health)) + 
+  geom_point() + 
+  geom_smooth()
+```
 
-# Happiness score by region(boxplot)
+### Scatter Plot No.4
+
+```{r}
+plot_ly(data = wh15_17, 
+        x=~Economy_GDP, y=~Happiness_Score, color=~Health, type = "scatter",
+        text = ~paste("Country:", Country))
+```
+
+
+[Reference](https://stackoverflow.com/questions/30706124/ploting-the-world-map-in-r)
+
+
+[参考](http://gg-hogehoge.hatenablog.com/entry/2013/09/23/212746)
+[参考2](http://www.statsoft.org/wp-content/uploads/2016/09/Lecture6_HKMapVis.html)
+[参考3](https://www.kaggle.com/swl554/visualizing-happiness-around-the-globe)
+
+## Boxplot
+### Happiness score by region(boxplot)
 ```{r}
 names(wh16)[4] <- "Happiness_Score"
-ggplot(wh16, aes(x=Region, y= Happiness_Score, colour = Region)) + geom_boxplot() + geom_point()
+ggplot(wh16, aes(x=Region, y= Happiness_Score, colour = Region)) + 
+  geom_boxplot() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
 
