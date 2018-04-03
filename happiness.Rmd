@@ -1,7 +1,7 @@
 ---
 title: "World Happiness Report"
 author: "Koki Ando"
-date: "3/26/2018"
+date: "4/03/2018"
 output:
   html_document:
     code_folding: hide
@@ -15,9 +15,10 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Introduction
+This time our team at USYD analyzes World Happiness Report.
 
 # Preparation
-
 ## Packages
 ```{r}
 library(data.table)
@@ -65,9 +66,14 @@ str(wh15_17)
 
 # Analysis
 ## Correlation
+### Correlation check No.1
+What makes nations happy?
 ```{r}
 corrplot(cor(wh15_17 %>% select(Happiness_Score:Dystopia_Residual)), method = "circle",type = "upper")
 ```
+
+
+This result shows us Happiness score is mostly 
 
 ## Histogram
 ```{r}
@@ -81,7 +87,8 @@ p <- ggplot(wh15_17 %>% filter(year==2017), aes(x= Happiness_Score,y=
                                              reorder(Country,Happiness_Score))) + 
   geom_point(colour = "red", alpha = .5) + 
   geom_segment(aes(yend=reorder(Country, Happiness_Score)), xend = 0, colour="pink", alpha = .5) + 
-  theme(axis.text.y = element_text(angle = 45, hjust = 1))
+  theme(axis.text.y = element_text(angle = 45, hjust = 1)) + 
+  labs(title = "World Hapiness Rnak in 2017", y = "Country Name", x = "Hapiness Score")
 ggplotly(p)
 ```
 
@@ -106,7 +113,8 @@ ggplot() +
                   aes(fill=Happiness_Score, map_id=Country),
                   colour="black") + 
   scale_fill_continuous(low="red", high="yellow",
-                               guide="colorbar")
+                               guide="colorbar") + 
+  labs(title = "World Hapiness Score in 2017")
 ```
 
 
@@ -121,13 +129,19 @@ plot(Happiness_Score ~ Economy_GDP, data = wh15_17)
 ```{r}
 plot_ly(data = wh15_17 %>% filter(year == 2017), 
         x=~Economy_GDP, y=~Happiness_Score, type = "scatter",
-        text = ~paste("Country:", Country))
+        text = ~paste("Country:", Country)) %>% 
+  layout(title = "Happiness and GDP relationship", 
+         xaxis = list(title = "GDP per Capita"),
+         yaxis = list(title = "Hapiness Score"))
 ```
 ### Scatter Plot No.3
 ```{r}
 ggplot(wh15_17 %>% filter(year == 2017), aes(x=Economy_GDP, y=Happiness_Score, colour=Health)) + 
   geom_point() + 
-  geom_smooth()
+  geom_smooth() + 
+  labs(x = "GDP per Capita", 
+       y = "Happiness Score", 
+       title = "Happiness, GDP and Health relationship")
 ```
 
 ### Scatter Plot No.4
@@ -135,7 +149,10 @@ ggplot(wh15_17 %>% filter(year == 2017), aes(x=Economy_GDP, y=Happiness_Score, c
 ```{r}
 plot_ly(data = wh15_17, 
         x=~Economy_GDP, y=~Happiness_Score, color=~Health, type = "scatter",
-        text = ~paste("Country:", Country))
+        text = ~paste("Country:", Country)) %>% 
+        layout(title = "Happiness, GDP and Health relationship", 
+               xaxis = list(title = "GDP per Capita"),
+               yaxis = list(title = "Hapiness Score"))
 ```
 
 
@@ -152,7 +169,10 @@ plot_ly(data = wh15_17,
 names(wh16)[4] <- "Happiness_Score"
 ggplot(wh16, aes(x=Region, y= Happiness_Score, colour = Region)) + 
   geom_boxplot() + 
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  labs(title = "Happiness Score Boxplot",
+       x = "Region",
+       y = "Happiness Score")
 ```
 
 
