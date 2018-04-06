@@ -6,10 +6,13 @@ output:
   html_document:
     code_folding: hide
     highlight: tango
+    number_section: yes
     theme: cosmo
     toc: yes
     toc_depth: 3
-    number_section: true
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
 ---
 
 ```{r setup, include=FALSE}
@@ -26,6 +29,9 @@ library(tidyverse)
 library(corrplot)
 library(plotly)
 library(wildcard)
+library(shiny)
+library(PerformanceAnalytics)
+library(DT)
 ```
 
 ## Data Importing & Cleaning
@@ -49,9 +55,7 @@ names(wh17)[12] <- "Dystopia Residual"
 wh15_17 <- bind_rows(wh15,wh16,wh17)
 names(wh15_17)[5] <- "SD_error"
 wh15_17 <- wh15_17 %>% select(Country:year,-Region, -SD_error)
-```
 
-```{r}
 names(wh15_17) <- c("Country","Happiness_Rank","Happiness_Score","Economy_GDP",
                  "Family","Health","Freedom","Trust",
                  "Generosity","Dystopia_Residual","year")
@@ -59,8 +63,17 @@ names(wh15_17) <- c("Country","Happiness_Rank","Happiness_Score","Economy_GDP",
 
 ## Data Components
 ```{r}
+names(wh15_17)
 head(wh15_17)
 str(wh15_17)
+summary(wh15_17)
+```
+
+
+# Countries that did not appear in 3 years in a row
+```{r}
+test <- wh15_17 %>% group_by(Country) %>% mutate(count = sum(year))
+test %>% filter(count != 6048) %>% select(Country, Happiness_Rank, year) %>% arrange(Country)
 ```
 
 
@@ -69,11 +82,17 @@ str(wh15_17)
 ### Correlation check No.1
 What makes nations happy?
 ```{r}
-corrplot(cor(wh15_17 %>% select(Happiness_Score:Dystopia_Residual)), method = "circle",type = "upper")
+corrplot(cor(wh15_17 %>% 
+               select(Happiness_Score:Dystopia_Residual)), 
+         method="color",  
+         sig.level = 0.01, insig = "blank",
+         addCoef.col = "black", 
+         tl.srt=45, 
+         type="upper"
+         )
 ```
 
 
-This result shows us Happiness score is mostly 
 
 ## Histogram
 ```{r}
@@ -135,16 +154,6 @@ plot_ly(data = wh15_17 %>% filter(year == 2017),
          yaxis = list(title = "Hapiness Score"))
 ```
 ### Scatter Plot No.3
-```{r}
-ggplot(wh15_17 %>% filter(year == 2017), aes(x=Economy_GDP, y=Happiness_Score, colour=Health)) + 
-  geom_point() + 
-  geom_smooth() + 
-  labs(x = "GDP per Capita", 
-       y = "Happiness Score", 
-       title = "Happiness, GDP and Health relationship")
-```
-
-### Scatter Plot No.4
 
 ```{r}
 plot_ly(data = wh15_17, 
@@ -163,6 +172,10 @@ plot_ly(data = wh15_17,
 [参考2](http://www.statsoft.org/wp-content/uploads/2016/09/Lecture6_HKMapVis.html)
 [参考3](https://www.kaggle.com/swl554/visualizing-happiness-around-the-globe)
 
+
+
+
+
 ## Boxplot
 ### Happiness score by region(boxplot)
 ```{r}
@@ -175,5 +188,36 @@ ggplot(wh16, aes(x=Region, y= Happiness_Score, colour = Region)) +
        y = "Happiness Score")
 ```
 
+## Extract & Compare Top5, Middle5 and Worst5 Countries
+```{r}
+world.happiness17 <- wh15_17 %>% filter(year == 2017)
+top5 <- world.happiness17 %>% head(5) %>% mutate(Level = "TOP5")
+middle5 <- world.happiness17[76:80, ] %>% mutate(Level = "MIDDLE5")
+worst5 <- world.happiness17 %>% tail(5) %>% mutate(Level = "WORST5")
 
+caomparison <- bind_rows(top5, middle5, worst5)
+
+caomparison$Level <- as.factor(caomparison$Level)
+caomparison <- transform(caomparison, Level = factor(Level, levels = c("TOP5", "MIDDLE5", "WORST5" )))
+ggplot(caomparison, aes(x = Level, y = Family, fill = Level)) + geom_boxplot()
+```
+
+```{r}
+datatable(caomparison,
+          options = list(
+            lengthMenu = c(5, 10, 15)
+          ),
+          caption = 
+            htmltools::tags$caption(
+              style = 'caption-side: bottom; text-align: center;', 
+              htmltools::em('Data table that only includes top5, middle5 and worst5 countries'))
+          )
+```
+
+```{R}
+caomparison.score <- caomparison %>% gather(key = "columns", value = "score", Happiness_Score:Dystopia_Residual)
+caomparison.score %>% 
+  ggplot(aes(x = Level, y = score, colour = Level, fill = Level)) + 
+  geom_boxplot(position=position_dodge(width=1)) + facet_wrap(~columns, scales = "free")
+```
 
